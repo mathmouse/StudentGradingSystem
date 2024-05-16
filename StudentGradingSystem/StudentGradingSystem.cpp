@@ -2,9 +2,8 @@
 #include <string>
 #include <iomanip>
 #include <fstream>
- 
-using namespace std;
 
+using namespace std;
 
 //*** Structure Definitions ***
 struct student
@@ -21,6 +20,12 @@ struct student
     double gradeAve = 0;    //holds grade average
     string letterGrade = ""; //holds final letter grade
 };
+
+struct studentNode
+{
+    student newStudent; //student structure 
+    studentNode* next = NULL;   //pointer to the next node in the list
+};
 //*** End of Structure Definitions ***
 
 //*** Start Prototypes ***
@@ -33,17 +38,18 @@ void editScreenGraphic();
 void exitScreen();
 void transition();
 
-// Handle single data structures or Arrays
-void menuScreen(student studentArray[], int limit, int counter);
-void studentMenu(student studentArray[], int limit, int counter);
-int populateArray(student studentArray[], int limit, int counter);
-void studentSearch(student studentArray[], int limit);
-student inputScreen();
+// Handle data structures
+void menuScreen(studentNode *head);
+studentNode* studentMenu(studentNode* head);
+studentNode* populateList(studentNode *head);
+void studentSearch(studentNode *head);
+student inputScreen(void);
 void outputScreen(student newStudent);
 student editScreen(student newStudent);
-void sort(student studentArray[], int limit);
-void tableOutputScreen(student studentArray[], int limit);
-void printTable(student studentArray[], int limit);
+void sort(studentNode* head);
+studentNode* swap(studentNode* p1, studentNode* p2);
+void tableOutputScreen(studentNode* head);
+void printTable(studentNode* head);
 
 //*** End Prototypes ***
 
@@ -55,18 +61,16 @@ Purpose: Display title screen and main menu
  ***********************************************************/
 int main()
 {
-    student studentArray[24];   //holds all students
-    int limit = 24; //size of array
-    int counter = 0;    //initial size of array
-
+    studentNode *head = NULL;
+   
     //*** Begin Splash Screen ***
     titleScreen();
     //*** End Splash Screen ***
 
     //*** Begin Main Menu Screen ***
-    menuScreen(studentArray, limit, counter);
+    menuScreen(head);
     //*** End Main Menu Screen ***
-    
+
     return 0;
 
 }   //end of main()
@@ -79,22 +83,23 @@ Purpose: Allow user to access the secondary menu, sort and print
     the student array, or leave the program
 
  ***********************************************************/
-void menuScreen(student studentArray[], int limit, int counter)
+void menuScreen(studentNode *head)
 {
-    string response = "";
+    string response = "";   //hold user menu choice
+    studentNode* temp;  //temporary node to assign new head of the list
 
     do
     {
         cout << "                         ______________________________                         \n";
-        cout << "                        | [Version         04/22/2024] |                        \n";
+        cout << "                        | [Version         05/14/2024] |                        \n";
         cout << "                        |______________________________|                        \n";
         cout << "                        |       MIRAMAR  COLLEGE       |                        \n";
         cout << "                        |   STUDENT  GRADING  SYSTEM   |                        \n";
         cout << "                        |______________________________|                        \n";
         cout << "                        |          MAIN  MENU          |                        \n";
-        cout << "          ______________|______________________________|______________          \n";
-        cout << "         |    <S>TUDENT MANAGEMENT     ||   <P>RINT    |    <E>XIT    |         \n";
-        cout << "         |_____________________________||______________|______________|         \n";
+        cout << "       _________________|______________________________|__________________      \n";
+        cout << "      |   <S>TUDENT MANAGEMENT    |   <P>RINT   |   SO<R>T   |   <E>XIT   |     \n";
+        cout << "      |___________________________|_____________|____________|____________|     \n";
         cout << endl;
         cout << " What would you like to do?" << endl;
         cout << " Type S - P - E: "; getline(cin, response);
@@ -112,7 +117,8 @@ void menuScreen(student studentArray[], int limit, int counter)
         case 'S':
         case 's':
             system("CLS");
-            studentMenu(studentArray, limit, counter);
+            temp = studentMenu(head);
+            head = temp;    //new head of the list
             break;
 
         case 'E':
@@ -124,7 +130,13 @@ void menuScreen(student studentArray[], int limit, int counter)
         case 'P':
         case 'p':
             system("CLS");
-            sort(studentArray, limit);
+            tableOutputScreen(head);
+            break;
+
+        case 'R':
+        case 'r':
+            system("CLS");
+            sort(head);
             break;
 
         default:
@@ -136,7 +148,7 @@ void menuScreen(student studentArray[], int limit, int counter)
 
     } while ((response.at(0) != 'E') && (response.at(0) != 'e'));
 
-}   //end of void menuScreen(student studentArray[], int limit, int counter)
+}   //end of void menuScreen(studentNode *head)
 
 
 /***********************************************************
@@ -146,22 +158,23 @@ Purpose: allow user to input new students, search between exising
     students and edit values, or return to the main menu
 
  ***********************************************************/
-void studentMenu(student studentArray[], int limit, int counter)
+studentNode* studentMenu(studentNode *head)
 {
-    string response = "";
+    string response = "";   //hold user menu choice
+    studentNode* temp;  //temporary node to assign new head of the list
 
     do
     {
         cout << "                         ______________________________                         \n";
-        cout << "                        | [Version         04/22/2024] |                        \n";
+        cout << "                        | [Version         05/14/2024] |                        \n";
         cout << "                        |______________________________|                        \n";
         cout << "                        |       MIRAMAR  COLLEGE       |                        \n";
         cout << "                        |   STUDENT  GRADING  SYSTEM   |                        \n";
         cout << "                        |______________________________|                        \n";
         cout << "                        |   STUDENT MANAGEMENT MENU    |                        \n";
-        cout << "          ______________|______________________________|______________          \n";
-        cout << "         |    <N>EW STUDENT RECORD     ||   <S>EARCH   |    <E>XIT    |         \n";
-        cout << "         |_____________________________||______________|______________|         \n";
+        cout << "       _________________|______________________________|_________________       \n";
+        cout << "      |   <N>EW STUDENT RECORD      |   <S>EARCH and EDIT   |   <E>XIT   |      \n";
+        cout << "      |_____________________________|_______________________|____________|      \n";
         cout << endl;
         cout << " What would you like to do?" << endl;
         cout << " Type N - S - E: "; getline(cin, response);
@@ -178,13 +191,14 @@ void studentMenu(student studentArray[], int limit, int counter)
         case 'N':
         case 'n':
             system("CLS");
-            counter = populateArray(studentArray, limit, counter);
+            temp = populateList(head);
+            head = temp;    //new head of the list
             break;
 
         case 'S':
         case 's':
             system("CLS");
-            studentSearch(studentArray, limit);
+            studentSearch(head);
             break;
 
         case 'E':
@@ -201,7 +215,9 @@ void studentMenu(student studentArray[], int limit, int counter)
 
     } while ((response.at(0) != 'E') && (response.at(0) != 'e'));
 
-}   //end of void studentMenu(student studentArray[], int limit, int counter)
+    return head;    //return head for main menu functionality
+
+}   //end of studentNode* studentMenu(studentNode *head)
 
 
 /***********************************************************
@@ -210,46 +226,61 @@ Function name: populate Array()
 Purpose: wrap function to add new students into the student array
 
  ***********************************************************/
-int populateArray(student studentArray[], int limit, int counter)
+studentNode* populateList(studentNode *head)
 {
     string response = "";
+    studentNode* p = NULL;  //temporary node for list creation
+    studentNode* q = NULL;  //temporary node for list creation
 
-    inputScreenGraphic();
-    cout << " Do you want to add a new Student Record?" << endl;
-    cout << " <Y>es or <N>o: "; getline(cin, response);
-
-    while (response.empty())    //handle an empty response
-    {
-        errorScreen();
-        cout << "Please enter a valid answer: "; getline(cin, response);
-        transition();
-    }   //end of while (response.empty())
-    
-    while (counter < limit && (response.at(0) == 'Y' || response.at(0) == 'y')) //add new students
+    do
     {
         system("CLS");
-        
-        studentArray[counter] = inputScreen();
-        counter++;
+
+        //create the head node
+        head = new studentNode;
+        p = head;
+        student add = inputScreen();
+        p->newStudent = add;
+        p->next = NULL;
 
         system("CLS");
         inputScreenGraphic();
         cout << " Do you want to add another Student Record?" << endl;
         cout << " <Y>es or <N>o: "; getline(cin, response);
         system("CLS");
-        
-    }   //end of while ((counter < limit) && (response.at(0) == 'Y' || response.at(0) == 'y'))
 
-    if (counter == limit)   //error message when the array is full
-    {
-        errorScreen();
-        cout << "Student Array is full!" << endl;
-        transition();
-    }   //end of if (counter == limit)
+        while (response.empty())    //handle an empty response
+        {
+            errorScreen();
+            cout << "Please enter a valid answer: "; getline(cin, response);
+            transition();
+        }   //end of while (response.empty())
 
-    return counter;
+        while (response.at(0) == 'Y' || response.at(0) == 'y') //add new students
+        {
+            system("CLS");
 
-}   //end of int populateArray(student studentArray[], int limit)
+            //create a new node
+            q = new studentNode;
+            student add = inputScreen();
+            q->newStudent = add;
+            q->next = NULL;
+            p->next = q;
+            p = p->next;
+
+            system("CLS");
+            inputScreenGraphic();
+            cout << " Do you want to add another Student Record?" << endl;
+            cout << " <Y>es or <N>o: "; getline(cin, response);
+            system("CLS");
+
+        }   //end of while (response.at(0) == 'Y' || response.at(0) == 'y')
+
+    } while (response.at(0) != 'N' && response.at(0) != 'n');
+
+    return head;    //return head for student menu functionality
+
+}   //end of studentNode* populateList(studentNode *head)
 
 
 /***********************************************************
@@ -258,7 +289,7 @@ Function name: inputScreen()
 Purpose: Allow user to input data for newStudent
 
  ***********************************************************/
-student inputScreen()
+student inputScreen(void)
 {
     student newStudent = { "No Data", "No Data" , "No Data" , "0" , "0" , "0" , "0" , "0" , "0" , 0, "0" };
 
@@ -384,7 +415,7 @@ Purpose: Display the Input Screen graphic when necessary
 void inputScreenGraphic(void)
 {
     cout << "                         ______________________________                         \n";
-    cout << "                        | [Version         04/22/2024] |                        \n";
+    cout << "                        | [Version         05/14/2024] |                        \n";
     cout << "                        |______________________________|                        \n";
     cout << "                        |       MIRAMAR  COLLEGE       |                        \n";
     cout << "                        |   STUDENT  GRADING  SYSTEM   |                        \n";
@@ -401,14 +432,14 @@ Function name: studentSearch()
 Purpose: allow user to search between existing students
 
  ***********************************************************/
-void studentSearch(student studentArray[], int limit)
+void studentSearch(studentNode *head)  
 {
-    int counter = 0;
     string response = "";
     string edit = "";
+    studentNode* current = head;    //node used to print the list
     
     cout << "                         ______________________________                         \n";
-    cout << "                        | [Version         04/22/2024] |                        \n";
+    cout << "                        | [Version         05/14/2024] |                        \n";
     cout << "                        |______________________________|                        \n";
     cout << "                        |       MIRAMAR  COLLEGE       |                        \n";
     cout << "                        |   STUDENT  GRADING  SYSTEM   |                        \n";
@@ -420,16 +451,11 @@ void studentSearch(student studentArray[], int limit)
     cout << endl;
 
     //Display student list for user selection
-    for (counter = 0; counter < limit; counter++)
+    while (current != NULL)
     {
-        if (studentArray[counter].firstName != "")   //only print non empty elements of the array
-        {
-            student a = studentArray[counter];
-            cout << " " << a.lastName << ", " << a.recordNumber << endl;
-
-        }   //end of if (studentArray[counter].firstName != "") 
-
-    }   //end of for (counter = 0; counter < limit; counter++)
+        cout << " " << current->newStudent.lastName << ", " << current->newStudent.recordNumber << endl;
+        current = current->next;
+    }   //end of while (current != NULL)
 
     cout << endl;
     cout << " Which student would you like to view? " << endl;
@@ -442,13 +468,15 @@ void studentSearch(student studentArray[], int limit)
         transition();
     }   //end of while (response.empty())
 
-    for (counter = 0; counter < limit; counter++)
+    //reinitialize to go back to the beginning of the list
+    current = head;
+
+    while (current != NULL)
     {
-        //if checks both for last name and record number 
-        if (studentArray[counter].recordNumber == response || studentArray[counter].lastName == response)
+        if (current->newStudent.recordNumber == response || current->newStudent.lastName == response)
         {
             system("CLS");
-            outputScreen(studentArray[counter]);   //display the student's information
+            outputScreen(current->newStudent);   //display the student's information
             cout << " Would you like to edit this student's information?" << endl;
             cout << " Y or N: "; getline(cin, edit);
 
@@ -464,7 +492,7 @@ void studentSearch(student studentArray[], int limit)
             case 'Y':
             case 'y':
                 system("CLS");
-                studentArray[counter] = editScreen(studentArray[counter]);  //edit the chosen student
+                current->newStudent = editScreen(current->newStudent);  //edit the chosen student
                 break;
 
             case 'N':
@@ -481,21 +509,18 @@ void studentSearch(student studentArray[], int limit)
 
             break;
 
-        }   //end of if (studentArray[counter].recordNumber == response || studentArray[counter].lastName == response)
+        }   //end of if (current->newStudent.recordNumber == response || current->newStudent.lastName == response)
 
-    }   //end of for (counter = 0; counter < limit; counter++)
+        current = current->next;    //move along the list
 
-    //display appropriate error if student search is not successfull
-    if (!(studentArray[counter].recordNumber == response || studentArray[counter].lastName == response))
-    {
-        errorScreen();
-        cout << " Student not found!" << endl;
-        transition();
+    }   //end of while (current != NULL)
 
-    }   //end of if (studentArray[counter].recordNumber != response || studentArray[counter].lastName != response)
+    //display error screen if the student is not found
+    //errorScreen();
+    // cout << " Student not found!" << endl;
+    //transition();
 
-}   //end of void studentSearch(student studentArray[], int limit)
-
+}   //end of void studentSearch(studentNode *head) 
 
 /***********************************************************
 
@@ -681,7 +706,7 @@ Purpose: Display the edit screen graphic when necessary
 void editScreenGraphic()
 {
     cout << "                         ______________________________                         \n";
-    cout << "                        | [Version         04/22/2024] |                        \n";
+    cout << "                        | [Version         05/14/2024] |                        \n";
     cout << "                        |______________________________|                        \n";
     cout << "                        |       MIRAMAR  COLLEGE       |                        \n";
     cout << "                        |   STUDENT  GRADING  SYSTEM   |                        \n";
@@ -702,7 +727,7 @@ Purpose: Display the student details, grade, average and
 void outputScreen(student newStudent)
 {
     cout << "                         ______________________________                         \n";
-    cout << "                        | [Version         04/22/2024] |                        \n";
+    cout << "                        | [Version         05/14/2024] |                        \n";
     cout << "                        |______________________________|                        \n";
     cout << "                        |       MIRAMAR  COLLEGE       |                        \n";
     cout << "                        |   STUDENT  GRADING  SYSTEM   |                        \n";
@@ -736,11 +761,11 @@ void outputScreen(student newStudent)
 /***********************************************************
 
 Function name: sort()
-Purpose: Sort array alphabetically or by record number, then
-    send the sorted array to be displayed in a table
+Purpose: Sort list alphabetically or by record number, then
+    send the sorted list to be displayed in a table
 
  ***********************************************************/
-void sort(student studentArray[], int limit)
+void sort(studentNode* head)
 {
     string response = "";   //holds user response
     int counter = 0;
@@ -748,8 +773,11 @@ void sort(student studentArray[], int limit)
     int j = 0;  //int to allow for sorting
     student newStudent; //temporary
 
+    studentNode* current;
+    current = head;
+
     cout << "                         ______________________________                         \n";
-    cout << "                        | [Version         04/22/2024] |                        \n";
+    cout << "                        | [Version         05/14/2024] |                        \n";
     cout << "                        |______________________________|                        \n";
     cout << "                        |       MIRAMAR  COLLEGE       |                        \n";
     cout << "                        |   STUDENT  GRADING  SYSTEM   |                        \n";
@@ -774,41 +802,41 @@ void sort(student studentArray[], int limit)
     case 'A':
     case 'a':
         //sort alphabetically
-        for (i = 0; i < (limit - 1); i++)
+        while (current != NULL)
         {
-            for (j = 0; j < limit; j++)
+            studentNode* p1 = current;
+            studentNode* p2 = p1->next;
+            if (p1->newStudent.lastName > p1->newStudent.lastName)
             {
-                if (studentArray[i].lastName < studentArray[j].lastName)
-                {
-                    newStudent = studentArray[i];
-                    studentArray[i] = studentArray[j];
-                    studentArray[j] = newStudent;
-                }   //end of if (studentArray[i].lastName > studentArray[j].lastName)
-            }   //end of for (j = 0; j < limit; j++)
-        }   //end of for (i = 0; i < (limit - 1); i++)
+                current = swap(p1, p2);
+            }
+
+            current = current->next;
+        }
 
         system("CLS");
-        tableOutputScreen(studentArray, limit); //display student array in a table
+        //find a way to reinitialize new head of the list after swapping
+        tableOutputScreen(head); //display student array in a table
         break;
         
     case 'R':
     case 'r':
         //sort by record number
-        for (i = 0; i < (limit - 1); i++)
+        while (current != NULL)
         {
-            for (j = 0; j < limit; j++)
+            studentNode* p1 = current;
+            studentNode* p2 = p1->next;
+            if (p1->newStudent.recordNumber > p1->newStudent.recordNumber)
             {
-                if (studentArray[i].recordNumber < studentArray[j].recordNumber)
-                {
-                    newStudent = studentArray[i];
-                    studentArray[i] = studentArray[j];
-                    studentArray[j] = newStudent;
-                }   //end of if (studentArray[i].recordNumber > studentArray[j].recordNumber)
-            }   //end of for (j = 0; j < limit; j++)
-        }   //end of for (i = 0; i < (limit - 1); i++)
+                current = swap(p1, p2);
+            }
+
+            current = current->next;
+        }
 
         system("CLS");
-        tableOutputScreen(studentArray, limit); //display student array in a table
+        //find a way to reinitialize new head of the list after swapping
+        tableOutputScreen(head); //display student array in a table
         break;
 
     default:
@@ -818,8 +846,22 @@ void sort(student studentArray[], int limit)
 
     }   //end of switch (response.at(0))
 
-}   //end of void sort(student studentArray[], int limit)
+}   //end of void sort(studentNode* head)
 
+
+/***********************************************************
+
+Function name: swap()
+Purpose: Swap two nodes
+
+ ***********************************************************/
+studentNode* swap(studentNode* p1, studentNode* p2)
+{
+    studentNode* temp = p2->next;
+    p1->next = temp;
+    p2->next = p1;
+    return p2;
+}   //end of studentNode* swap(studentNode* p1, studentNode* p2)
 
 /***********************************************************
 
@@ -827,13 +869,13 @@ Function name: tableOutputScreen()
 Purpose: display student array in a table and allow for user to print it
 
  ***********************************************************/
-void tableOutputScreen(student studentArray[], int limit)
+void tableOutputScreen(studentNode* head)
 {
-    int counter = 0;
     string response = "";
+    studentNode* current = head;
 
     cout << "                         ______________________________                         \n";
-    cout << "                        | [Version         04/22/2024] |                        \n";
+    cout << "                        | [Version         05/14/2024] |                        \n";
     cout << "                        |______________________________|                        \n";
     cout << "                        |       MIRAMAR  COLLEGE       |                        \n";
     cout << "                        |   STUDENT  GRADING  SYSTEM   |                        \n";
@@ -842,16 +884,12 @@ void tableOutputScreen(student studentArray[], int limit)
     cout << "                        |______________________________|                        \n";
     cout << endl;
 
-    for (counter = 0; counter < limit; counter++)
+    while (current != NULL)
     {
-        if (studentArray[counter].firstName != "")   //print only non empty members of the array
-        {
-            student a = studentArray[counter];
-            cout << " " << a.lastName << ", " << a.firstName << " - " << a.recordNumber << " | " << a.gradeAve << " " << a.letterGrade << endl;
-
-        }   //end of if (studentArray[counter].firstName != "")
-
-    }   //end of for (counter = 0; counter < limit; counter++)
+        student s = current->newStudent;
+        cout << " " << s.lastName << ", " << s.firstName << " - " << s.recordNumber << " | " << s.gradeAve << " " << s.letterGrade << endl;
+        current = current->next;
+    }   //end of while (current != NULL)
 
     cout << endl;
     cout << " Would you like to print this screen?" << endl;
@@ -867,7 +905,7 @@ void tableOutputScreen(student studentArray[], int limit)
 
     if (response.at(0) == 'Y' || response.at(0) == 'y')
     {
-        printTable(studentArray, limit);
+        printTable(head);
         transition();
 
     }   //end of if (response.at(0) == 'Y' || response.at(0) == 'y')
@@ -877,7 +915,7 @@ void tableOutputScreen(student studentArray[], int limit)
         transition();
     }   //end of else
 
-}   //end of void tableOutputScreen(student studentArray[], int limit)
+}   //end of void tableOutputScreen(studentNode* head)
 
 
 /***********************************************************
@@ -886,29 +924,25 @@ Function name: print()
 Purpose: save to file the sorted student table
 
  ***********************************************************/
-void printTable(student studentArray[], int limit)
+void printTable(studentNode* head)
 {
     ofstream ofile;
-    int counter = 0;
+    studentNode* current = head;
     
     ofile.open("newStudent.prn");   //opening the file
 
-    for (counter = 0; counter < limit; counter++)
+    while (current != NULL)
     {
-        if (studentArray[counter].firstName != "")   //print only non empty members of the array
-        {
-            student a = studentArray[counter];
-            ofile << " " << a.lastName << ", " << a.firstName << " - " << a.recordNumber << " | " << a.gradeAve << " " << a.letterGrade << endl;
-
-        }   //end of if (studentArray[counter].firstName != "")
-
-    }   //end of for (counter = 0; counter < limit; counter++)
+        student s = current->newStudent;
+        ofile << " " << s.lastName << ", " << s.firstName << " - " << s.recordNumber << " | " << s.gradeAve << " " << s.letterGrade << endl;
+        current = current->next;
+    }   //end of while (current != NULL)
 
     ofile.close(); //closing the file
 
     cout << " A copy has been saved to file." << endl;
 
-}   //end of void printTable()
+}   //end of void printTable(studentNode* head)
 
 /***********************************************************
 
@@ -934,7 +968,7 @@ Purpose: Display the Title Screen graphic
 void titleScreen(void)
 {
     cout << "                         ______________________________                         \n";
-    cout << "                        | [Version         04/22/2024] |                        \n";
+    cout << "                        | [Version         05/14/2024] |                        \n";
     cout << "                        |  __________________________  |                        \n";
     cout << "                        | |                          | |                        \n";
     cout << "                        | |     MIRAMAR  COLLEGE     | |                        \n";
@@ -968,7 +1002,7 @@ Purpose: Display the Exit Screen graphic
 void exitScreen(void)
 {
     cout << "                         ______________________________                         \n";
-    cout << "                        | [Version         04/22/2024] |                        \n";
+    cout << "                        | [Version         05/14/2024] |                        \n";
     cout << "                        |  __________________________  |                        \n";
     cout << "                        | |                          | |                        \n";
     cout << "                        | |     MIRAMAR  COLLEGE     | |                        \n";
@@ -1005,7 +1039,7 @@ void errorScreen()
 {
     system("CLS");
     cout << "                         ______________________________                         \n";
-    cout << "         ****    ****   | [Version         04/22/2024] |   ****    ****         \n";
+    cout << "         ****    ****   | [Version         05/14/2024] |   ****    ****         \n";
     cout << "         *   *  *   *   |______________________________|   *   *  *   *         \n";
     cout << "          *   **   *    |       MIRAMAR  COLLEGE       |    *   **   *          \n";
     cout << "           *      *     |   STUDENT  GRADING  SYSTEM   |     *      *           \n";
